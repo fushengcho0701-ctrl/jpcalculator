@@ -116,11 +116,14 @@ function seaCalc(){
  let fixTotal=fixPer*s;
  let pkg=box*base.seaBox + cover*base.cover;
  let total=fixTotal+pkg;
- let x=total/0.84;
- let per=x/s;
+ let x = total / 0.84;
+ let per = x / s;
+ let jpy = per / 0.2;
 
- seaResult.textContent="海運最低拍賣金額：$"+per.toFixed(2);
 
+seaResult.textContent =
+  "海運最低拍賣金額：每支 $" + per.toFixed(2) + " / ¥" + jpy.toFixed(0);
+ 
  seaDetail.innerHTML=
    "固定成本每支：$"+fixPer.toFixed(2)+
    "<br>固定成本總計：$"+fixTotal.toFixed(2)+
