@@ -1,201 +1,133 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>空運 / 海運 成本試算</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-    h2 { margin-top: 40px; }
-    section { border: 2px solid #ccc; padding: 20px; border-radius: 10px; margin-bottom: 40px; }
-    .row { margin-bottom: 12px; }
-    label { display: inline-block; width: 200px; font-weight: bold; }
-    input { padding: 5px; width: 140px; }
-    .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
-    .formula { color:#555; font-size:0.9em; margin-left:10px; line-height:1.4; }
-  </style>
-</head>
-<body>
 
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>成本試算</title>
+<style>body{font-family:Arial;margin:20px;line-height:1.5}section{border:1px solid #aaa;padding:15px;margin-bottom:30px;border-radius:10px}.row{margin-bottom:10px}label{display:inline-block;width:180px;font-weight:bold}.formula{color:#555;font-size:.9em}</style>
+</head><body>
 <h1>空運 / 海運 成本試算</h1>
 
-<section id="airSection">
-  <h2>✈️ 空運 ✈️</h2>
+<section>
+<h2>✈️ 空運 ✈️</h2>
+<p>每捆160支；重量40.432kg<br>3.5噸=42捆/$6000；17噸=190捆/$13000；26噸=140捆/$15000</p>
 
-  <h3>每捆基本資料（固定）</h3>
-  <p>尺寸：76 × 56 × 57 cm<br>V.W.：40.432 KG<br>每捆支數：160 支</p>
+<div class="row"><label>運輸車款：</label>
+<select id="truck"><option value="3.5">3.5噸</option><option value="17">17噸</option><option value="26">26噸</option></select></div>
 
-  <h3>輸入資料</h3>
-  <div class="row">
-    <label>本次出貨捆數：</label>
-    <input type="number" id="air_bundles" value="0">
-  </div>
+<div class="row"><label>本次捆數：</label><input id="air_bundle" type="number" value="0"></div>
 
-  <div class="row">
-    <label>空運紙箱使用量（個）：</label>
-    <input type="number" id="air_box_qty" value="0" readonly>
-    <span class="formula">＝ 捆數 × 8</span>
-  </div>
+<div class="row"><label>空運紙箱：</label><input id="air_box" readonly><span class="formula">=捆×8</span></div>
+<div class="row"><label>天地蓋：</label><input id="air_cover" readonly><span class="formula">=捆</span></div>
 
-  <div class="row">
-    <label>天地蓋使用量（組）：</label>
-    <input type="number" id="air_cover_qty" value="0" readonly>
-    <span class="formula">＝ 捆數</span>
-  </div>
+<p id="air_stem">本次出貨支數：0</p>
+<p id="air_weight">重量：0 KG</p>
 
-  <p id="air_stem_info">本次出貨支數：0 支</p>
-
-  <button onclick="calcAir()">計算空運最低拍賣金額</button>
-  <div class="result" id="airResult">—</div>
-  <div class="formula" id="airFormula"></div>
+<button onclick="airCalc()">計算空運最低拍賣金額</button>
+<div id="airResult" style="font-weight:bold;margin-top:10px"></div>
+<div id="airDetail" class="formula"></div>
 </section>
 
-<section id="seaSection">
-  <h2>🚢 海運 🚢</h2>
-
-  <h3>每櫃基本資料（固定）</h3>
-  <p>滿櫃捆數：180 捆<br>滿櫃支數：28,800 支</p>
-
-  <h3>輸入資料</h3>
-  <div class="row">
-    <label>本次海運支數：</label>
-    <input type="number" id="sea_stems" value="0">
-  </div>
-
-  <div class="row">
-    <label>海運紙箱使用量（個）：</label>
-    <input type="number" id="sea_box_qty" value="0" readonly>
-    <span class="formula">＝ 支數 ÷ 20（無條件進位）</span>
-  </div>
-
-  <div class="row">
-    <label>天地蓋使用量（組）：</label>
-    <input type="number" id="sea_cover_qty" value="0" readonly>
-    <span class="formula">＝ 支數 ÷ 160（無條件進位）</span>
-  </div>
-
-  <button onclick="calcSea()">計算海運最低拍賣金額</button>
-  <div class="result" id="seaResult">—</div>
-  <div class="formula" id="seaFormula"></div>
+<section>
+<h2>🚢 海運 🚢</h2>
+<div class="row"><label>海運支數：</label><input id="sea_stem" type="number"></div>
+<div class="row"><label>紙箱：</label><input id="sea_box" readonly><span class="formula">=支÷20</span></div>
+<div class="row"><label>天地蓋：</label><input id="sea_cover" readonly><span class="formula">=支÷160</span></div>
+<button onclick="seaCalc()">計算海運最低拍賣金額</button>
+<div id="seaResult" style="font-weight:bold;margin-top:10px"></div>
+<div id="seaDetail" class="formula"></div>
 </section>
 
 <script>
-const baseCosts = {
-  collect: 16,
-  package: 2.5,
-  rack: 0.45,
-  sleeve: 0.09,
-  airBox: 1.3,
-  seaBox: 1.35,
-  cover: 0.13
-};
+const base={collect:16,pack:2.5,rack:0.45,sleeve:0.09,airBox:1.3,seaBox:1.35,cover:0.13};
+const jp={inland:1.04,customs:1.52,fee:0.10,yms:0.06};
+const airFee={perKg:24.67,misc:1.57,stemKg:0.253};
+const trucks={ "3.5":{max:42,fee:6000},"17":{max:190,fee:13000},"26":{max:140,fee:15000} };
 
-const jpCosts = {
-  inland: 1.04,
-  customs: 1.52,
-  fee10: 0.10,
-  yms6: 0.06
-};
-
-const airFees = {
-  perKg: 24.67,
-  miscPerKg: 1.57,
-  perStemKg: 0.253
-};
-
-function calcAir() {
-  const bundles = Number(air_bundles.value);
-  const stems = bundles * 160;
-  air_stem_info.innerText = `本次出貨支數：${stems} 支`;
-  if (stems <= 0) return;
-
-  const boxQty = bundles * 8;
-  air_box_qty.value = boxQty;
-
-  const coverQty = bundles;
-  air_cover_qty.value = coverQty;
-
-  const weight = stems * airFees.perStemKg;
-  const airFreight = weight * (airFees.perKg + airFees.miscPerKg);
-
-  const fixedBreak = [
-    ['收花', baseCosts.collect],
-    ['包裝費', baseCosts.package],
-    ['花架', baseCosts.rack],
-    ['袖套', baseCosts.sleeve],
-    ['日本內陸運輸', jpCosts.inland],
-    ['日本報關', jpCosts.customs]
-  ];
-
-  const fixedPerStem = fixedBreak.reduce((s, i) => s + i[1], 0);
-  const totalFixed = fixedPerStem * stems;
-
-  const packaging = boxQty * baseCosts.airBox + coverQty * baseCosts.cover;
-  const totalCost = totalFixed + packaging + airFreight;
-
-  const minAuctionTotal = totalCost / 0.84;
-  const minPerStem = minAuctionTotal / stems;
-  const minJPY = minPerStem / 0.2;
-
-  airResult.innerText = `空運最低拍賣金額：每支 $${minPerStem.toFixed(2)} / ¥${minJPY.toFixed(0)}`;
-
-  airFormula.innerHTML =
-    `固定成本（每支）明細：<br>` +
-    fixedBreak.map(i => `• ${i[0]}：$${i[1]}`).join('<br>') +
-    `<br>合計：$${fixedPerStem.toFixed(2)}<br><br>` +
-    `固定成本總計（${stems} 支 × $${fixedPerStem.toFixed(2)}）＝ $${totalFixed.toFixed(2)}<br><br>` +
-    `包材費：紙箱 ${boxQty} × $${baseCosts.airBox} ＋ 天地蓋 ${coverQty} × $${baseCosts.cover} ＝ $${packaging.toFixed(2)}<br>` +
-    `空運費用：重量 ${weight.toFixed(2)} kg × ${(airFees.perKg + airFees.miscPerKg).toFixed(2)} ＝ $${airFreight.toFixed(2)}<br>` +
-    `總成本：$${totalCost.toFixed(2)}<br><br>` +
-    `最低拍賣金額：每支 $${minPerStem.toFixed(2)}（約 ¥${minJPY.toFixed(0)}）<br><br>` +
-    `推導公式：X = 總成本 / 0.84`;
+function pickTruck(b){
+ if(b<=42)return "3.5";
+ if(b<=190)return "17";
+ if(b<=140)return "26";
+ return null;
 }
 
-function calcSea() {
-  const stems = Number(sea_stems.value);
-  if (stems <= 0) return;
+function airCalc(){
+ let b=Number(air_bundle.value);
+ let stems=b*160;
+ air_stem.textContent="本次出貨支數："+stems;
 
-  const boxQty = Math.ceil(stems / 20);
-  sea_box_qty.value = boxQty;
+ if(b<=0){airResult.textContent="請輸入捆數";return;}
 
-  const coverQty = Math.ceil(stems / 160);
-  sea_cover_qty.value = coverQty;
+ let sel=truck.value;
+ let rule=trucks[sel];
 
-  const seaFreightPerStem = 1.91;
+ if(b>rule.max){
+   let auto=pickTruck(b);
+   if(!auto){alert("超過26噸最大載重140捆");return;}
+   alert("已自動切換為 "+auto+" 噸");
+   truck.value=auto;
+   rule=trucks[auto];
+ }
 
-  const fixedBreak = [
-    ['收花', baseCosts.collect],
-    ['包裝費', baseCosts.package],
-    ['花架', baseCosts.rack],
-    ['袖套', baseCosts.sleeve],
-    ['日本內陸運輸', jpCosts.inland],
-    ['日本報關', jpCosts.customs],
-    ['海運運費（每支）', seaFreightPerStem]
-  ];
+ let twPer=rule.fee/stems;
+ let twTotal=rule.fee;
 
-  const fixedPerStem = fixedBreak.reduce((s, i) => s + i[1], 0);
-  const totalFixed = fixedPerStem * stems;
+ air_weight.textContent="重量："+(stems*airFee.stemKg).toFixed(2)+" KG（台灣運輸/支 $"+twPer.toFixed(2)+"）";
 
-  const packaging = boxQty * baseCosts.seaBox + coverQty * baseCosts.cover;
-  const totalCost = totalFixed + packaging;
+ air_box.value=b*8;
+ air_cover.value=b;
 
-  const minAuctionTotal = totalCost / 0.84;
-  const minPerStem = minAuctionTotal / stems;
-  const minJPY = minPerStem / 0.2;
+ let weight=stems*airFee.stemKg;
+ let airCost=weight*(airFee.perKg+airFee.misc);
 
-  seaResult.innerText = `海運最低拍賣金額：每支 $${minPerStem.toFixed(2)} / ¥${minJPY.toFixed(0)}`;
+ let fix=[["收花",base.collect],["包裝",base.pack],["花架",base.rack],["袖套",base.sleeve],
+         ["日本內陸",jp.inland],["日本報關",jp.customs],["台灣運輸",twPer]];
+ let fixSum=fix.reduce((s,i)=>s+i[1],0);
+ let fixTotal=fixSum*stems;
 
-  seaFormula.innerHTML =
-    `固定成本（每支）明細：<br>` +
-    fixedBreak.map(i => `• ${i[0]}：$${i[1]}`).join('<br>') +
-    `<br>合計：$${fixedPerStem.toFixed(2)}<br><br>` +
-    `固定成本總計（${stems} 支 × $${fixedPerStem.toFixed(2)}）＝ $${totalFixed.toFixed(2)}<br><br>` +
-    `包材費：紙箱 ${boxQty} × $${baseCosts.seaBox} ＋ 天地蓋 ${coverQty} × $${baseCosts.cover} ＝ $${packaging.toFixed(2)}<br>` +
-    `總成本：$${totalCost.toFixed(2)}<br><br>` +
-    `最低拍賣金額：每支 $${minPerStem.toFixed(2)}（約 ¥${minJPY.toFixed(0)}）<br><br>` +
-    `推導公式：X = 總成本 / 0.84`;
+ let pkg=b*8*base.airBox + b*base.cover;
+ let total=fixTotal+pkg+airCost;
+
+ let x=total/0.84;
+ let per=x/stems;
+ let jpy=per/0.2;
+
+ airResult.textContent="空運最低拍賣金額：$"+per.toFixed(2)+" / ¥"+jpy.toFixed(0);
+
+ airDetail.innerHTML=
+   "固定成本每支：<br>"+fix.map(i=>"• "+i[0]+"：$"+i[1].toFixed(2)).join("<br>")+
+   "<br>合計：$"+fixSum.toFixed(2)+
+   "<br><br>台灣運輸總額：$"+twTotal+
+   "<br><br>固定成本總計：$"+fixTotal.toFixed(2)+
+   "<br><br>包材費：$"+pkg.toFixed(2)+
+   "<br>空運費：$"+airCost.toFixed(2)+
+   "<br>總成本：$"+total.toFixed(2)+
+   "<br><br>公式：X = 總成本 / 0.84";
+}
+
+function seaCalc(){
+ let s=Number(sea_stem.value);
+ if(s<=0){seaResult.textContent="請輸入支數";return;}
+
+ let box=Math.ceil(s/20);
+ let cover=Math.ceil(s/160);
+ sea_box.value=box;
+ sea_cover.value=cover;
+
+ let seaF=1.91;
+
+ let fixPer=base.collect+base.pack+base.rack+base.sleeve+jp.inland+jp.customs+seaF;
+ let fixTotal=fixPer*s;
+ let pkg=box*base.seaBox + cover*base.cover;
+ let total=fixTotal+pkg;
+ let x=total/0.84;
+ let per=x/s;
+
+ seaResult.textContent="海運最低拍賣金額：$"+per.toFixed(2);
+
+ seaDetail.innerHTML=
+   "固定成本每支：$"+fixPer.toFixed(2)+
+   "<br>固定成本總計：$"+fixTotal.toFixed(2)+
+   "<br>包材費：$"+pkg.toFixed(2)+
+   "<br>總成本：$"+total.toFixed(2)+
+   "<br>公式：X = 總成本 / 0.84";
 }
 </script>
 
-</body>
-</html>
+</body></html>
