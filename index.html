@@ -12,12 +12,14 @@
     label { display: inline-block; width: 200px; font-weight: bold; }
     input { padding: 5px; width: 140px; }
     .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+    .formula { color:#555; font-size:0.9em; margin-left:10px; }
   </style>
 </head>
 <body>
 
   <h1>空運 / 海運 成本試算</h1>
 
+  <!-- ✈️ 空運 SECTION -->
   <section id="airSection">
     <h2>✈️ 空運 ✈️</h2>
 
@@ -29,21 +31,27 @@
       <label>本次出貨捆數：</label>
       <input type="number" id="air_bundles" value="0">
     </div>
+
     <div class="row">
       <label>空運紙箱使用量（個）：</label>
-      <input type="number" id="air_box_qty" value="0">
+      <input type="number" id="air_box_qty" value="0" readonly>
+      <span class="formula">＝ 捆數 × 8</span>
     </div>
+
     <div class="row">
       <label>天地蓋使用量（組）：</label>
-      <input type="number" id="air_cover_qty" value="0">
+      <input type="number" id="air_cover_qty" value="0" readonly>
+      <span class="formula">＝ 捆數</span>
     </div>
 
     <p id="air_stem_info">本次出貨支數：0 支</p>
 
     <button onclick="calcAir()">計算空運最低拍賣金額</button>
     <div class="result" id="airResult">—</div>
+    <div class="formula" id="airFormula"></div>
   </section>
 
+  <!-- 🚢 海運 SECTION -->
   <section id="seaSection">
     <h2>🚢 海運 🚢</h2>
 
@@ -55,20 +63,26 @@
       <label>本次海運支數：</label>
       <input type="number" id="sea_stems" value="0">
     </div>
+
     <div class="row">
       <label>海運紙箱使用量（個）：</label>
-      <input type="number" id="sea_box_qty" value="0">
+      <input type="number" id="sea_box_qty" value="0" readonly>
+      <span class="formula">＝ 支數 ÷ 20 （無條件進位）</span>
     </div>
+
     <div class="row">
       <label>天地蓋使用量（組）：</label>
-      <input type="number" id="sea_cover_qty" value="0">
+      <input type="number" id="sea_cover_qty" value="0" readonly>
+      <span class="formula">＝ 支數 ÷ 160 （無條件進位）</span>
     </div>
 
     <button onclick="calcSea()">計算海運最低拍賣金額</button>
     <div class="result" id="seaResult">—</div>
+    <div class="formula" id="seaFormula"></div>
   </section>
 
 <script>
+  // 固定成本（兩邊共用）
   const baseCosts = {
     collect: 16,
     package: 2.5,
@@ -86,6 +100,7 @@
     yms6: 0.06
   };
 
+  // 空運費用
   const airFees = {
     perKg: 24.67,
     miscPerKg: 1.57,
@@ -94,33 +109,52 @@
 
   function calcAir() {
     const bundles = Number(document.getElementById('air_bundles').value);
-    const stems = bundles * 20 * 8;
-
+    const stems = bundles * 20 * 8; // 1捆 = 8盒，每盒20支
     document.getElementById('air_stem_info').innerText = `本次出貨支數：${stems} 支`;
 
     if (stems <= 0) {
       document.getElementById('airResult').innerText = '請輸入有效捆數。';
+      document.getElementById('airFormula').innerText = '';
       return;
     }
 
-    const boxQty = Number(document.getElementById('air_box_qty').value);
-    const coverQty = Number(document.getElementById('air_cover_qty').value);
+    const boxQty = bundles * 8;
+    document.getElementById('air_box_qty').value = boxQty;
+
+    const coverQty = bundles;
+    document.getElementById('air_cover_qty').value = coverQty;
 
     const weight = stems * airFees.perStemKg;
     const airFreight = weight * (airFees.perKg + airFees.miscPerKg);
 
-    let fixedPerStem =
-      baseCosts.collect + baseCosts.package + baseCosts.rack + baseCosts.sleeve +
-      jpCosts.inland + jpCosts.customs;
+    const fixedPerStem =
+      baseCosts.collect +
+      baseCosts.package +
+      baseCosts.rack +
+      baseCosts.sleeve +
+      jpCosts.inland +
+      jpCosts.customs;
 
-    let totalFixed = fixedPerStem * stems;
-    let packaging = boxQty * baseCosts.airBox + coverQty * baseCosts.cover;
+    const totalFixed = fixedPerStem * stems;
+    const packaging = boxQty * baseCosts.airBox + coverQty * baseCosts.cover;
 
-    let totalCost = totalFixed + packaging + airFreight;
+    const totalCost = totalFixed + packaging + airFreight;
 
-    let minAuction = totalCost / (1 - jpCosts.fee10 - jpCosts.yms6);
+    const minAuctionTotal = totalCost / (1 - jpCosts.fee10 - jpCosts.yms6);
+    const minAuctionPerStem = minAuctionTotal / stems;
 
-    document.getElementById('airResult').innerText = `空運最低拍賣金額：每支 $${(minAuction / stems).toFixed(2)}`;
+    document.getElementById('airResult').innerText =
+      `空運最低拍賣金額：每支 $${minAuctionPerStem.toFixed(2)}`;
+
+    document.getElementById('airFormula').innerHTML =
+      `詳細成本拆解：<br>
+      🔹 固定成本（每支）：$${fixedPerStem.toFixed(2)}<br>
+      🔹 固定成本總計：$${totalFixed.toFixed(2)}<br>
+      🔹 包材費（自動計算）： 空運紙箱 ${boxQty} 個 × $${baseCosts.airBox} ＋ 天地蓋 ${coverQty} 組 × $${baseCosts.cover} ＝ $${packaging.toFixed(2)}<br>
+      🔹 空運費用：重量 ${weight.toFixed(2)} kg × 單價 ${(airFees.perKg + airFees.miscPerKg).toFixed(2)} ＝ $${airFreight.toFixed(2)}<br>
+      🔹 總成本：$${totalCost.toFixed(2)}<br><br>
+      推導公式：<br>
+      X = 總成本 + 10%X + 6%X → X = 總成本 / 0.84`;
   }
 
   function calcSea() {
@@ -128,26 +162,46 @@
 
     if (stems <= 0) {
       document.getElementById('seaResult').innerText = '請輸入有效支數。';
+      document.getElementById('seaFormula').innerText = '';
       return;
     }
 
-    const boxQty = Number(document.getElementById('sea_box_qty').value);
-    const coverQty = Number(document.getElementById('sea_cover_qty').value);
+    const boxQty = Math.ceil(stems / 20);
+    document.getElementById('sea_box_qty').value = boxQty;
+
+    const coverQty = Math.ceil(stems / 160);
+    document.getElementById('sea_cover_qty').value = coverQty;
 
     const seaFreightPerStem = 1.91;
 
-    let fixedPerStem =
-      baseCosts.collect + baseCosts.package + baseCosts.rack + baseCosts.sleeve +
-      jpCosts.inland + jpCosts.customs + seaFreightPerStem;
+    const fixedPerStem =
+      baseCosts.collect +
+      baseCosts.package +
+      baseCosts.rack +
+      baseCosts.sleeve +
+      jpCosts.inland +
+      jpCosts.customs +
+      seaFreightPerStem;
 
-    let totalFixed = fixedPerStem * stems;
-    let packaging = boxQty * baseCosts.seaBox + coverQty * baseCosts.cover;
+    const totalFixed = fixedPerStem * stems;
+    const packaging = boxQty * baseCosts.seaBox + coverQty * baseCosts.cover;
 
-    let totalCost = totalFixed + packaging;
+    const totalCost = totalFixed + packaging;
 
-    let minAuction = totalCost / (1 - jpCosts.fee10 - jpCosts.yms6);
+    const minAuctionTotal = totalCost / (1 - jpCosts.fee10 - jpCosts.yms6);
+    const minAuctionPerStem = minAuctionTotal / stems;
 
-    document.getElementById('seaResult').innerText = `海運最低拍賣金額：每支 $${(minAuction / stems).toFixed(2)}`;
+    document.getElementById('seaResult').innerText =
+      `海運最低拍賣金額：每支 $${minAuctionPerStem.toFixed(2)}`;
+
+    document.getElementById('seaFormula').innerHTML =
+      `詳細成本拆解：<br>
+      🔹 固定成本（每支）：$${fixedPerStem.toFixed(2)}<br>
+      🔹 固定成本總計：$${totalFixed.toFixed(2)}<br>
+      🔹 包材費（自動計算）： 海運紙箱 ${boxQty} 個 × $${baseCosts.seaBox} ＋ 天地蓋 ${coverQty} 組 × $${baseCosts.cover} ＝ $${packaging.toFixed(2)}<br>
+      🔹 總成本：$${totalCost.toFixed(2)}<br><br>
+      推導公式：<br>
+      X = 總成本 + 10%X + 6%X → X = 總成本 / 0.84`;
   }
 </script>
 
